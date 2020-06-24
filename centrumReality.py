@@ -31,6 +31,8 @@ class Scraper:
 
     def parse_post(self,link):
 
+        print(link)
+
         state = 'N/A'
         penb = 'N/A'
         floor = 1000
@@ -95,6 +97,7 @@ class Scraper:
                 state = "N/A"
                 link = post.find("a",class_="form-price")["href"]
 
+                id = link.split('.html')[0].split('-')[-1]
                 #print(room_coeff,meters,location,price, link)
                 floor, penb, state = self.parse_post(link)
 
@@ -102,6 +105,7 @@ class Scraper:
                     continue
 
                 flat = Flat(
+                    id=id,
                     price=price,
                     title=location,
                     link=link,
@@ -112,7 +116,7 @@ class Scraper:
                     penb=penb,
                     state=state
                 )
-                self.flats.append(flat.get_cmp_dict())
+                self.flats.append(flat)
             except AttributeError as ae:
                 pass # this is an advert
             except Exception as e:
@@ -123,7 +127,7 @@ class Scraper:
                 elif "Rezerv" in str(e):
                     pass
                 else:
-                    print(post)
+                    print(link)
 
 
 

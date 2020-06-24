@@ -1,14 +1,24 @@
-class Flat:
-    price = ""
-    title = ""
-    link = ""
-    size = ""
-    meters = 0
-    price_per_meter = 0
-    floor = "N/A"
-    penb = "N/A"
-    state = "neutral"
-    def __init__(self,price,title,link, size, meters, price_per_meter,floor,penb,state):
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String,Float, TIMESTAMP
+Base = declarative_base()
+
+
+class Flat(Base):
+    __tablename__ = "flat"
+    id = Column(String,primary_key=True)
+    price = Column(Integer)
+    title = Column(String)
+    link = Column(String)
+    size = Column(Float)
+    meters = Column(Integer)
+    price_per_meter = Column(Integer)
+    floor = Column(Integer)
+    penb = Column(String)
+    state = Column(String)
+    interest_level = Column(Integer)
+
+    def __init__(self,id, price,title,link, size, meters, price_per_meter,floor,penb,state,interest_level=5):
+        self.id = id
         self.price = price
         self.title = title
         self.link = link
@@ -18,6 +28,7 @@ class Flat:
         self.floor = floor
         self.penb = penb
         self.state = state
+        self.interest_level = interest_level
 
     def get_cmp_dict(self):
         cmp_dict = {
@@ -29,7 +40,8 @@ class Flat:
             "floor" : self.floor,
             "penb" : self.penb,
             "state" : self.state,
-            "link": self.link
+            "link": self.link,
+            "interest_level": self.interest_level
 
         }
         return cmp_dict

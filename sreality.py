@@ -77,11 +77,11 @@ class Scraper:
                 if floor == "1":
                     continue
 
-                if meters < 52:
-                    continue
+                id = link.split('/')[-1]
 
-
-                flat = Flat(title=location,
+                flat = Flat(
+                            id=id,
+                            title=location,
                             size=room_coeff,
                             price=price,
                             price_per_meter=price_per_meter,
@@ -91,7 +91,7 @@ class Scraper:
                             penb=penb,
                             state=state
                             )
-                self.flats.append(flat.get_cmp_dict())
+                self.flats.append(flat)
             except IndexError as ie:
                 print('error',heading)
                 #print(heading,ie)
@@ -127,6 +127,8 @@ class Scraper:
                 if "Podlaží" in label:
                     value = param.find("span").text.strip()
                     floor = value.split('.')[0]
+            if floor == "přízemí":
+                floor = 0
         except Exception as e:
             print(e.__class__.__name__,e)
             print_exc()

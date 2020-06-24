@@ -42,24 +42,22 @@ class Scraper:
             room_coeff = room_base_coeff + room_addons_coeff
             price_per_room = price / room_coeff
 
-            if price_per_meter > 100000.0:
-                continue
-
-            if price > 5500000:
-                continue
 
             link = div.find("a",class_="product__link")['href']
             link = "https://bezrealitky.cz" + link
 
+            id = link.split('/')[-1]
+            id = id.split('-')[0]
             floor,penb,state = self.parse_post(link)
 
             if floor < 2:
                 continue
 
-            if state == "bad":
+            if state == "před rekonstrukcí":
                 continue
 
             flat = Flat(
+                id=id,
                 price=price,
                 title=location,
                 link=link,
@@ -70,11 +68,12 @@ class Scraper:
                 penb=penb,
                 state=state
             )
-            self.flats.append(flat.get_cmp_dict())
+            self.flats.append(flat)
             #print(location,suburb,price,room_coeff,rooms,size,price_per_meter, price_per_room)
             #print(div)
 
     def parse_post(self,link):
+
         floor = None
         state = "neutral"
         penb = None
@@ -88,7 +87,7 @@ class Scraper:
         desc = div.find("p",class_="b-desc__info").text.strip()
 
         if "určen k rekonstrukci" in desc:
-            state = "bad"
+            state = "před rekonstrukcí"
         rows = div.find_all("tr")
 
         for row in rows:

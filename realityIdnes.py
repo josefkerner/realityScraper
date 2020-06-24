@@ -36,47 +36,51 @@ class Scraper:
 
     def parse_posts(self,posts):
         for post in posts:
-            #print(post)
-            price = post.find("p",class_="c-list-products__price").text.strip().replace("Kč","").replace(" ","")
-            price = int(price)
-            location = post.find("p",class_="c-list-products__info").text.strip()
-            title = post.find("h2", class_="c-list-products__title").text.strip().replace("\n","").replace("prodejbytu","")
-            size = int(title.split(',')[1].replace("m²","").strip())
-            rooms = title.split(',')[0]
-            room_base_coeff = int(rooms.split('+')[0])
-            room_addons_coeff = 0.0 if "kk" in rooms else 0.5
-            room_coeff = room_base_coeff + room_addons_coeff
+            try:
+                price = post.find("p",class_="c-list-products__price").text.strip().replace("Kč","").replace(" ","")
+                price = int(price)
+                location = post.find("p",class_="c-list-products__info").text.strip()
+                title = post.find("h2", class_="c-list-products__title").text.strip().replace("\n","").replace("prodejbytu","")
+                size = int(title.split(',')[1].replace("m²","").strip())
+                rooms = title.split(',')[0]
+                room_base_coeff = int(rooms.split('+')[0])
+                room_addons_coeff = 0.0 if "kk" in rooms else 0.5
+                room_coeff = room_base_coeff + room_addons_coeff
 
-            price_per_meter = price / size
+                price_per_meter = price / size
+                #print(price,location,title,size,price_per_meter)
+                link = ""
+                if room_coeff > 3.5:
+                    continue
+                if size < 55:
+                    continue
+                link = post.find("a",class_="c-list-products__link")['href']
+                link = "https://reality.idnes.cz" + link
 
+                link = link.split('?')[0]
+                id = link.split('/')[-2]
 
-            #print(price,location,title,size,price_per_meter)
-            link = ""
-            if room_coeff > 3.5:
-                continue
-            if size < 55:
-                continue
-            link = post.find("a",class_="c-list-products__link")['href']
-            link = "https://reality.idnes.cz" + link
+                floor,penb,state = self.parse_post(link)
 
-            link = link.split('?')[0]
+                if floor < 2:
+                    continue
 
-            floor,penb,state = self.parse_post(link)
-
-            if floor < 2:
-                continue
-
-            flat = Flat(title=location,
-                        size=room_coeff,
-                        price=price,
-                        price_per_meter=price_per_meter,
-                        meters=size,
-                        link=link,
-                        floor=floor,
-                        penb=penb,
-                        state=state
-                        )
-            self.flats.append(flat.get_cmp_dict())
+                flat = Flat(
+                            id=id,
+                            title=location,
+                            size=room_coeff,
+                            price=price,
+                            price_per_meter=price_per_meter,
+                            meters=size,
+                            link=link,
+                            floor=floor,
+                            penb=penb,
+                            state=state
+                            )
+                self.flats.append(flat)
+            except Exception as e:
+                print(e)
+                print(post)
 
     def parse_post(self,link):
         floor = 1000
