@@ -74,8 +74,6 @@ class Scraper:
                 #print(location, price, room_coeff, meters, price_per_meter, link)
 
                 floor, penb, state = self.parse_post(link)
-                if floor == "1":
-                    continue
 
                 id = link.split('/')[-1]
 
@@ -93,10 +91,10 @@ class Scraper:
                             )
                 self.flats.append(flat)
             except IndexError as ie:
-                print('error',heading)
+                print('error',ie)
                 #print(heading,ie)
             except ValueError as ve:
-                print('error',heading)
+                print('error',ve)
                 #print(heading,ve)
             #print(post)
 
@@ -111,6 +109,10 @@ class Scraper:
             soup = BeautifulSoup(self.driver.page_source)
 
             params = soup.find("div",class_="params")
+
+            if params == None:
+                print(soup)
+                raise ValueError("Could not find params div")
             labels = params.find_all("li",class_="param")
 
             for param in labels:
@@ -120,7 +122,8 @@ class Scraper:
                     value = param.find("span").text.strip()
                     value = value.replace("Třída ",'')
 
-                    penb = value.split('-').strip()
+                    penb = value.split('-')[0].strip()
+                    penb = penb.replace("Třída ","")
                 if "Stav objektu" in label:
                     value = param.find("span").text.strip()
                     state = value
@@ -129,14 +132,19 @@ class Scraper:
                     floor = value.split('.')[0]
             if floor == "přízemí":
                 floor = 0
+            floor = int(floor)
+
+            return floor, penb, state
         except Exception as e:
+            print("------------------------")
             print(e.__class__.__name__,e)
             print_exc()
             print(link)
-            print("------------------------")
+            raise ValueError(str(e))
 
 
-        return floor, penb, state
+
+
 
 
 
@@ -146,6 +154,8 @@ if __name__ == "__main__":
     scraper = Scraper()
     scraper.start_workflow()
 
+    flat_num = str(len(scraper.flats))
+    print(flat_num + " flats were scraped from sreality")
     for flat in scraper.flats:
-        print(flat)
+        print(flat.get_cmp_dict())
 

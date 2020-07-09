@@ -98,6 +98,9 @@ class Scraper:
                 penb = content.replace("PENB:","").replace("\n","").strip()
             if "Podlaží:" in content:
                 floor = content.replace("Podlaží:","").replace("\n","").strip()
+
+                if "přízemí" in floor:
+                    floor = 0
         #print(desc)
 
         #print(floor,penb)

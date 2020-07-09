@@ -6,11 +6,12 @@ import pandas as pd
 from Levenshtein import distance as levenshtein_distance
 from lib.DBConnector import DBConnector
 from model.flat import Flat
-
+from traceback import print_exc
 import datetime
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_, or_, not_
+import asyncio
 
 class MasterScraper:
     def __init__(self):
@@ -32,18 +33,64 @@ class MasterScraper:
                     return True
                 if levenshtein_distance(flat.title,ex_flat.title) < 3:
                     return True
+
+        print('INFO - new flat',flat.link)
         return False
 
-    def start_workflow(self):
+    async def load_flats(self):
+
+        tasks = []
 
         for scraper in self.scrapers:
-            flats = scraper.start_workflow()
+            task = self.loop.create_task(self.run_scraper(scraper))
+            tasks.append(task)
+        await asyncio.wait(tasks)
 
-            for flat in flats:
-                if not self.check_existing(flat):
-                    self.db.add_record(flat)
-                    self.all_flats.append(flat)
-                    self.db.session.commit()
+
+    async def run_scraper(self,scraper):
+        print('triggering scraper',scraper)
+        flats = scraper.start_workflow()
+        for flat in flats:
+            self.all_flats.append(flat)
+        await asyncio.sleep(0.0001)
+
+
+
+
+    def start_workflow(self):
+        self.loop = asyncio.get_event_loop()
+        print('INFO - starting flats load')
+        self.loop.run_until_complete(self.load_flats())
+        self.loop.close()
+
+        try:
+                print('downloaded number of flats : ',len(self.all_flats))
+                for flat in self.all_flats:
+                    if self.check_existing(flat) == False:
+                        try:
+                            self.db.add_record(flat)
+
+                            self.db.session.commit()
+                            print('INFO : saved new flat')
+                        except Exception as e:
+                            print('failed to save flat of link', flat.link)
+                            print('with exception', str(e))
+                            continue
+                            
+                self.delete_not_existing_flats(self.all_flats)
+        except Exception as e:
+            print("INFO - failed to process scraper",scraper," with error", str(e))
+            print_exc()
+            
+    def delete_not_existing_flats(self,downloaded_flats):
+        existing_flats = self.db.session.query(Flat).all()
+        
+        downloaded_ids = [flat.id for flat in downloaded_flats]
+        
+        for flat in existing_flats:
+            if flat.id not in downloaded_ids:
+                flat.interest_level = 0
+                self.db.session.commit()
 
     def show_db_results(self,):
         flats_all = []
@@ -74,5 +121,5 @@ class MasterScraper:
 if __name__ == "__main__":
     scraper = MasterScraper()
     scraper.init_db()
-    #scraper.start_workflow()
+    scraper.start_workflow()
     scraper.show_db_results()

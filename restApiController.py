@@ -10,15 +10,20 @@ class RestApiController:
         self.db = DBConnector(connectionString)
 
     def set_interest_level(self,id, interest_level):
+        print("obtained",id,interest_level)
         flat = self.db.session.query(Flat).filter(Flat.id == id).one()
         flat.interest_level = interest_level
+
+        print(flat.interest_level)
         self.db.session.commit()
 
-    def get_flats(self):
+    def get_flats(self,level_from,level_to):
         flats = self.db.session.query(Flat).filter(and_(
             Flat.interest_level != 0,
-            Flat.price < 5600000,
-            Flat.state != 'před rekonstrukcí'
+            Flat.price < 5700000,
+            Flat.state != 'před rekonstrukcí',
+            Flat.interest_level >= level_from,
+            Flat.interest_level <= level_to
         )).all()
 
         flats = [flat.get_cmp_dict() for flat in flats]

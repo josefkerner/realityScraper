@@ -32,6 +32,7 @@ class Flat(Base):
 
     def get_cmp_dict(self):
         cmp_dict = {
+            "id": self.id,
             "title" : self.title,
             "price" : self.price,
             "size" : self.size,

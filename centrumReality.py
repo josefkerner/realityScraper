@@ -75,7 +75,7 @@ class Scraper:
 
     def parse_posts(self,posts):
         for post in posts:
-
+            link = ""
             try:
                 heading = post.find("h2").text.strip()
                 heading = heading.replace("Prodej bytu,","").replace(" ","")
