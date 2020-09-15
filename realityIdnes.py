@@ -60,7 +60,7 @@ class Scraper:
                 link = link.split('?')[0]
                 id = link.split('/')[-2]
 
-                floor,penb,state = self.parse_post(link)
+                floor,penb,state, desc = self.parse_post(link)
 
                 if floor < 2:
                     continue
@@ -75,7 +75,8 @@ class Scraper:
                             link=link,
                             floor=floor,
                             penb=penb,
-                            state=state
+                            state=state,
+                            description=desc
                             )
                 self.flats.append(flat)
             except Exception as e:
@@ -120,11 +121,10 @@ class Scraper:
             #print(dt,dd)
         #print(floor,penb)
 
-        return floor,penb,state
-
+        return floor,penb,state, desc_text
 if __name__ == "__main__":
     scraper = Scraper()
     scraper.start_workflow()
 
     for flat in scraper.flats:
-        print(flat)
+        print(flat.get_cmp_dict())

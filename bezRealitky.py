@@ -48,7 +48,7 @@ class Scraper:
 
             id = link.split('/')[-1]
             id = id.split('-')[0]
-            floor,penb,state = self.parse_post(link)
+            floor,penb,state, desc = self.parse_post(link)
 
             if floor < 2:
                 continue
@@ -66,7 +66,8 @@ class Scraper:
                 price_per_meter=price_per_meter,
                 floor=floor,
                 penb=penb,
-                state=state
+                state=state,
+                description=desc
             )
             self.flats.append(flat)
             #print(location,suburb,price,room_coeff,rooms,size,price_per_meter, price_per_room)
@@ -108,7 +109,7 @@ class Scraper:
             floor = int(floor)
         except TypeError as e:
             floor = 1000
-        return floor,penb,state
+        return floor,penb,state, desc
 
 
 

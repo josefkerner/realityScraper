@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String,Float, TIMESTAMP
+from sqlalchemy import Column, Integer, String,Float, TIMESTAMP, Text
 Base = declarative_base()
-
+from datetime import date
 
 class Flat(Base):
     __tablename__ = "flat"
@@ -16,8 +16,22 @@ class Flat(Base):
     penb = Column(String)
     state = Column(String)
     interest_level = Column(Integer)
+    downloaded_at = Column(TIMESTAMP)
+    description = Column(Text)
 
-    def __init__(self,id, price,title,link, size, meters, price_per_meter,floor,penb,state,interest_level=5):
+    def __init__(self,
+                 id,
+                 price,
+                 title,
+                 link,
+                 size,
+                 meters,
+                 price_per_meter,
+                 floor,
+                 penb,
+                 state,
+                 description,
+                 interest_level=5):
         self.id = id
         self.price = price
         self.title = title
@@ -29,6 +43,8 @@ class Flat(Base):
         self.penb = penb
         self.state = state
         self.interest_level = interest_level
+        self.downloaded_at = date.today()
+        self.description = description
 
     def get_cmp_dict(self):
         cmp_dict = {
@@ -38,6 +54,7 @@ class Flat(Base):
             "size" : self.size,
             "meters" : self.meters,
             "price_per_meter" : self.price_per_meter,
+            "description": self.description,
             "floor" : self.floor,
             "penb" : self.penb,
             "state" : self.state,

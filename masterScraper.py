@@ -17,7 +17,9 @@ class MasterScraper:
     def __init__(self):
         self.all_flats = []
 
-        self.scrapers = [bezrealitky(),realityIdnes(),centrumReality(),sReality()]
+        self.scrapers = [bezrealitky(),realityIdnes(),centrumReality()
+            #,sReality() #TODO - shitty quality still - problem with parsing and IP stalling
+                         ]
 
     def init_db(self):
         connectionString = "postgresql://postgres:root@127.0.0.1/reality"
@@ -28,7 +30,10 @@ class MasterScraper:
             self.db.session.query(Flat).filter(Flat.id == flat.id).one()
             return True
         except NoResultFound as e:
-            for ex_flat in self.all_flats:
+            for ex_flat in self.db.session.query(Flat).all():
+                if flat.id == ex_flat.id:
+                    return True
+
                 if flat.price_per_meter == ex_flat.price_per_meter:
                     return True
                 if levenshtein_distance(flat.title,ex_flat.title) < 3:
@@ -37,31 +42,18 @@ class MasterScraper:
         print('INFO - new flat',flat.link)
         return False
 
-    async def load_flats(self):
-
-        tasks = []
-
+    def load_flats(self):
         for scraper in self.scrapers:
-            task = self.loop.create_task(self.run_scraper(scraper))
-            tasks.append(task)
-        await asyncio.wait(tasks)
+            self.run_scraper(scraper)
 
-
-    async def run_scraper(self,scraper):
+    def run_scraper(self,scraper):
         print('triggering scraper',scraper)
         flats = scraper.start_workflow()
         for flat in flats:
             self.all_flats.append(flat)
-        await asyncio.sleep(0.0001)
-
-
-
 
     def start_workflow(self):
-        self.loop = asyncio.get_event_loop()
-        print('INFO - starting flats load')
-        self.loop.run_until_complete(self.load_flats())
-        self.loop.close()
+        self.load_flats()
 
         try:
                 print('downloaded number of flats : ',len(self.all_flats))
@@ -77,7 +69,7 @@ class MasterScraper:
                             print('with exception', str(e))
                             continue
                             
-                self.delete_not_existing_flats(self.all_flats)
+                #self.delete_not_existing_flats(self.all_flats)
         except Exception as e:
             print("INFO - failed to process scraper",scraper," with error", str(e))
             print_exc()
@@ -92,7 +84,7 @@ class MasterScraper:
                 flat.interest_level = 0
                 self.db.session.commit()
 
-    def show_db_results(self,):
+    def show_db_results(self):
         flats_all = []
         flats = self.db.session.query(Flat).filter(and_(
             Flat.interest_level != 0,
@@ -102,7 +94,11 @@ class MasterScraper:
         for flat in flats:
             flats_all.append(flat.get_cmp_dict())
 
-        self.show_results(flats_all)
+        if len(flats_all) > 4:
+
+            self.show_results(flats_all)
+        else:
+            print("No flats found with given conditions")
     def show_results(self,flats):
 
         data = pd.DataFrame(flats)

@@ -71,7 +71,7 @@ class Scraper:
         if "přízem" in desc:
             floor = 0
 
-        return floor,penb, state
+        return floor,penb, state, desc
 
     def parse_posts(self,posts):
         for post in posts:
@@ -99,7 +99,7 @@ class Scraper:
 
                 id = link.split('.html')[0].split('-')[-1]
                 #print(room_coeff,meters,location,price, link)
-                floor, penb, state = self.parse_post(link)
+                floor, penb, state, desc = self.parse_post(link)
 
                 if floor < 2:
                     continue
@@ -114,7 +114,8 @@ class Scraper:
                     price_per_meter=price_per_meter,
                     floor=floor,
                     penb=penb,
-                    state=state
+                    state=state,
+                    description=desc
                 )
                 self.flats.append(flat)
             except AttributeError as ae:

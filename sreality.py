@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from traceback import print_exc
 
+from requests_html import HTMLSession
+
 from model.flat import Flat
 class Scraper:
     def __init__(self):
@@ -21,8 +23,12 @@ class Scraper:
     def parse_pages(self, urls):
         # srealitky posts are rendered during runtime with JS, so we need to use selenium with JS support
         from selenium import webdriver
+        self.driver = HTMLSession()
+        #chrome_options = webdriver.ChromeOptions()
+        #chrome_options.add_argument('--headless')
+        #self.driver = webdriver.Chrome('chromedriver', chrome_options=chrome_options)
 
-        self.driver = webdriver.PhantomJS("C:\\dev\\phantomjs-2.1.1-windows\\phantomjs-2.1.1-windows\\bin\\phantomjs.exe")
+        #self.driver = webdriver.PhantomJS("C:\\dev\\phantomjs-2.1.1-windows\\phantomjs-2.1.1-windows\\bin\\phantomjs.exe")
 
         #soupFromJokesCC = BeautifulSoup(driver.page_source)  # page_source fetches page after rendering is complete
         #driver.save_screenshot('screen.png')  # save a screenshot to disk
@@ -30,17 +36,27 @@ class Scraper:
         #driver.quit()
         for url in urls:
             print("INFO -- parsing page")
-            self.driver.get(url)
+            res = self.driver.get(url,headers={'user-agent':'Mozilla/5.0'})
+            res.html.render()
             #response = requests.get(url, verify=False)
-            soup = BeautifulSoup(self.driver.page_source)
+
+            print(print(res.html.__dict__))
+
+
+            soup = BeautifulSoup(res.html._html,'html.parser')
+            print(url)
+            #print(soup)
 
 
 
             posts = soup.find_all("div",class_="info")
 
             #print(posts)
+
+
+
+            #print(posts)
             self.parse_posts(posts)
-        self.driver.quit()
 
     def parse_posts(self,posts):
         for post in posts:
@@ -73,7 +89,7 @@ class Scraper:
                 price_per_meter = price / meters
                 #print(location, price, room_coeff, meters, price_per_meter, link)
 
-                floor, penb, state = self.parse_post(link)
+                floor, penb, state, desc = self.parse_post(link)
 
                 id = link.split('/')[-1]
 
@@ -87,7 +103,8 @@ class Scraper:
                             link=link,
                             floor=floor,
                             penb=penb,
-                            state=state
+                            state=state,
+                            description=desc
                             )
                 self.flats.append(flat)
             except IndexError as ie:
@@ -105,13 +122,23 @@ class Scraper:
 
         try:
 
-            self.driver.get(link)
-            soup = BeautifulSoup(self.driver.page_source)
+            res = self.driver.get(link)
+            res.html.render()
+            soup = BeautifulSoup(res.html._html,"html.parser")
+
+
+
 
             params = soup.find("div",class_="params")
 
+            desc = ""
+
             if params == None:
-                print(soup)
+                #print(soup)
+                print('params not found for',link)
+                print(res.html._html)
+
+
                 raise ValueError("Could not find params div")
             labels = params.find_all("li",class_="param")
 
@@ -134,7 +161,7 @@ class Scraper:
                 floor = 0
             floor = int(floor)
 
-            return floor, penb, state
+            return floor, penb, state, desc
         except Exception as e:
             print("------------------------")
             print(e.__class__.__name__,e)
