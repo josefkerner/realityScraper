@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from model.flat import Flat
 import re
+import logging
 
 import pandas as pd
 
@@ -18,6 +19,7 @@ class Scraper:
             self.urls.append(additionalUrl)
 
     def start_workflow(self):
+        logging.info("Starting workflow")
 
         self.parse_pages(self.urls)
         return self.flats
@@ -41,7 +43,8 @@ class Scraper:
                 price = int(price)
                 location = post.find("p",class_="c-list-products__info").text.strip()
                 title = post.find("h2", class_="c-list-products__title").text.strip().replace("\n","").replace("prodejbytu","")
-                size = int(title.split(',')[1].replace("m²","").strip())
+                size = float(title.split(',')[1].replace("m²","").strip())
+                size = int(size)
                 rooms = title.split(',')[0]
                 room_base_coeff = int(rooms.split('+')[0])
                 room_addons_coeff = 0.0 if "kk" in rooms else 0.5
@@ -52,7 +55,7 @@ class Scraper:
                 link = ""
                 if room_coeff > 3.5:
                     continue
-                if size < 55:
+                if size < 50:
                     continue
                 link = post.find("a",class_="c-list-products__link")['href']
                 link = "https://reality.idnes.cz" + link
@@ -62,7 +65,7 @@ class Scraper:
 
                 floor,penb,state, desc = self.parse_post(link)
 
-                if floor < 2:
+                if floor < 1:
                     continue
 
                 flat = Flat(
@@ -76,7 +79,8 @@ class Scraper:
                             floor=floor,
                             penb=penb,
                             state=state,
-                            description=desc
+                            description=desc,
+                            interest_level=5
                             )
                 self.flats.append(flat)
             except Exception as e:

@@ -50,7 +50,7 @@ class Scraper:
             id = id.split('-')[0]
             floor,penb,state, desc = self.parse_post(link)
 
-            if floor < 2:
+            if floor < 1:
                 continue
 
             if state == "před rekonstrukcí":

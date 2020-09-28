@@ -95,13 +95,13 @@ class Scraper:
                 floor = "N/A"
                 penb = "N/A"
                 state = "N/A"
-                link = post.find("a",class_="form-price")["href"]
+                link = post.find("a",class_="advert-list-items__images")["href"]
 
                 id = link.split('.html')[0].split('-')[-1]
                 #print(room_coeff,meters,location,price, link)
                 floor, penb, state, desc = self.parse_post(link)
 
-                if floor < 2:
+                if floor < 1:
                     continue
 
                 flat = Flat(
@@ -121,13 +121,15 @@ class Scraper:
             except AttributeError as ae:
                 pass # this is an advert
             except Exception as e:
-                print("Exception occurred in post ------------------------------------------------------------------")
-                print(e.__class__.__name__,e)
                 if "Cena" in str(e):
                     pass
                 elif "Rezerv" in str(e):
                     pass
                 else:
+                    print("Uncaught Exception occurred in post-----------------------------")
+                    print(e.__class__.__name__, e)
+                    print_exc()
+                    print(post)
                     print(link)
 
 
@@ -138,4 +140,4 @@ if __name__ == "__main__":
     scraper.start_workflow()
 
     for flat in scraper.flats:
-        print(flat)
+        print(flat.get_cmp_dict())

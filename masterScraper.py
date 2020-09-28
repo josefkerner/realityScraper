@@ -7,6 +7,7 @@ from Levenshtein import distance as levenshtein_distance
 from lib.DBConnector import DBConnector
 from model.flat import Flat
 from traceback import print_exc
+import logging
 import datetime
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
@@ -24,23 +25,57 @@ class MasterScraper:
     def init_db(self):
         connectionString = "postgresql://postgres:root@127.0.0.1/reality"
         self.db = DBConnector(connectionString)
+        
+    def deduplicate_flats(self):
+
+        print("Looking for duplicate flats")
+        flats = self.db.session.query(Flat).all()
+        flats_comp = self.db.session.query(Flat).all()
+        duplicates = []
+        for flat in flats:
+            if flat.interest_level == 0:
+                continue
+            masterFlat = {'master_flat': flat,'duplicates': []}
+            same_records = None
+            for flat_comp in flats_comp:
+                if flat_comp.interest_level == 0:
+                    continue
+                duplicate = False
+                ids = [flat.id for flat in masterFlat['duplicates']]
+                if flat.id == flat_comp.id:
+                    continue # do not compare exactly same records
+                if flat.price_per_meter == flat_comp.price_per_meter and flat.price == flat_comp.price:
+                    if levenshtein_distance(flat.title, flat_comp.title) < 6:
+                        if flat_comp.id not in ids:
+                            duplicate = True
+                if levenshtein_distance(flat.title, flat_comp.title) < 3:
+                    if flat_comp.id not in ids:
+                        if abs(flat.price - flat_comp.price) > 500000:
+                            duplicate = False
+                        else:
+                            duplicate = True
+
+                if duplicate:
+                    masterFlat['duplicates'].append(flat_comp)
+            if len(masterFlat['duplicates']) != 0:
+                print("found same records")
+                print('master',masterFlat['master_flat'].get_cmp_dict())
+                for duplicate in masterFlat['duplicates']:
+                    duplicate.interest_level = 3
+                    self.db.session.commit()
+                print('----------------------------------------------------')
+
 
     def check_existing(self, flat):
         try:
-            self.db.session.query(Flat).filter(Flat.id == flat.id).one()
+            ex_flat = self.db.session.query(Flat).filter(Flat.id == flat.id).one()
+            ex_flat.update(flat)
+            ex_flat.adjust_interest_level()
+            self.db.session.commit()
             return True
         except NoResultFound as e:
-            for ex_flat in self.db.session.query(Flat).all():
-                if flat.id == ex_flat.id:
-                    return True
-
-                if flat.price_per_meter == ex_flat.price_per_meter:
-                    return True
-                if levenshtein_distance(flat.title,ex_flat.title) < 3:
-                    return True
-
-        print('INFO - new flat',flat.link)
-        return False
+            logging.info('INFO - new flat',flat.link)
+            return False
 
     def load_flats(self):
         for scraper in self.scrapers:
@@ -68,6 +103,9 @@ class MasterScraper:
                             print('failed to save flat of link', flat.link)
                             print('with exception', str(e))
                             continue
+
+                self.deduplicate_flats()
+                    
                             
                 #self.delete_not_existing_flats(self.all_flats)
         except Exception as e:
@@ -87,8 +125,11 @@ class MasterScraper:
     def show_db_results(self):
         flats_all = []
         flats = self.db.session.query(Flat).filter(and_(
-            Flat.interest_level != 0,
+            Flat.interest_level > 4,
             Flat.price < 5600000,
+            Flat.meters > 52,
+            Flat.size > 2.0,
+            Flat.price > 1000000,
             Flat.state != 'před rekonstrukcí'
         )).all()
         for flat in flats:
@@ -118,4 +159,5 @@ if __name__ == "__main__":
     scraper = MasterScraper()
     scraper.init_db()
     scraper.start_workflow()
+    #scraper.deduplicate_flats()
     scraper.show_db_results()

@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from traceback import print_exc
 
 from requests_html import HTMLSession
-
+import time
 from model.flat import Flat
 class Scraper:
     def __init__(self):
@@ -35,9 +35,11 @@ class Scraper:
 
         #driver.quit()
         for url in urls:
+
+            #time.sleep(1) # sleep in order to not get blocked
             print("INFO -- parsing page")
             res = self.driver.get(url,headers={'user-agent':'Mozilla/5.0'})
-            res.html.render()
+            res.html.render(wait=1, sleep=5)
             #response = requests.get(url, verify=False)
 
             print(print(res.html.__dict__))
@@ -47,19 +49,14 @@ class Scraper:
             print(url)
             #print(soup)
 
-
-
             posts = soup.find_all("div",class_="info")
 
-            #print(posts)
-
-
-
-            #print(posts)
             self.parse_posts(posts)
 
     def parse_posts(self,posts):
         for post in posts:
+
+            start = time.time()
 
             location = post.find("span",class_="locality").text.strip()
             price = post.find("span", class_="norm-price").text.strip()
@@ -71,10 +68,8 @@ class Scraper:
             room_addons_coeff = 0.0 if "kk" in rooms else 0.5
             room_coeff = room_base_coeff + room_addons_coeff
 
-
-
-
             link = post.find("a",class_="title")['href']
+
             link = "https://sreality.cz" + link
             if price == "Info o ceně u RK":
                 continue
@@ -115,6 +110,12 @@ class Scraper:
                 #print(heading,ve)
             #print(post)
 
+            end = time.time()
+
+            duration = end - start
+
+            print('post parsed in ',duration)
+
     def parse_post(self,link):
         floor = 1000
         penb = "N/A"
@@ -123,11 +124,8 @@ class Scraper:
         try:
 
             res = self.driver.get(link)
-            res.html.render()
+            res.html.render(wait=1, sleep=5, keep_page=True)
             soup = BeautifulSoup(res.html._html,"html.parser")
-
-
-
 
             params = soup.find("div",class_="params")
 
@@ -136,10 +134,12 @@ class Scraper:
             if params == None:
                 #print(soup)
                 print('params not found for',link)
-                print(res.html._html)
+                print(soup)
+                raise ValueError("Could not find params")
 
-
-                raise ValueError("Could not find params div")
+            else:
+                print("got params")
+                #raise ValueError("Could not find params div")
             labels = params.find_all("li",class_="param")
 
             for param in labels:
@@ -168,13 +168,6 @@ class Scraper:
             print_exc()
             print(link)
             raise ValueError(str(e))
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

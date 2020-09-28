@@ -46,6 +46,21 @@ class Flat(Base):
         self.downloaded_at = date.today()
         self.description = description
 
+    def adjust_interest_level(self):
+        updated = False
+        if self.description == None:
+            return updated
+        if "aukce" in self.description or "dražba" in self.description:
+            self.interest_level = 4
+            updated = True
+        if "k rekonstrukci" in self.description:
+            self.interest_level = 4
+            updated = True
+        if "rezervo" in self.description.lower():
+            self.interest_level = 4
+            updated = True
+        return updated
+
     def get_cmp_dict(self):
         cmp_dict = {
             "id": self.id,
@@ -63,3 +78,17 @@ class Flat(Base):
 
         }
         return cmp_dict
+
+    '''
+        :param ex = existing flat from internal database
+    '''
+    def update(self, ex):
+        updated = False
+        if self.price != ex.price and self.price != None:
+            self.price = ex.price
+            self.price_per_meter = ex.price / self.meters
+            updated = True
+        if self.description != ex.description and self.description != None:
+            self.description = ex.description
+            updated = True
+        return updated
