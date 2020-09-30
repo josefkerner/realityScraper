@@ -1,6 +1,7 @@
 from bezRealitky import Scraper as bezrealitky
 from realityIdnes import Scraper as realityIdnes
 from centrumReality import Scraper as centrumReality
+from bydlisnamiScraper import Scraper as bydliSNami
 from sreality import Scraper as sReality
 import pandas as pd
 from Levenshtein import distance as levenshtein_distance
@@ -13,12 +14,16 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_, or_, not_
 import asyncio
+import multiprocessing
+from multiprocessing import Process,Queue
 
 class MasterScraper:
     def __init__(self):
         self.all_flats = []
 
-        self.scrapers = [bezrealitky(),realityIdnes(),centrumReality()
+        self.scrapers = [bezrealitky(),
+                         realityIdnes(),
+                         centrumReality(),
             #,sReality() #TODO - shitty quality still - problem with parsing and IP stalling
                          ]
 
@@ -77,15 +82,45 @@ class MasterScraper:
             logging.info('INFO - new flat',flat.link)
             return False
 
-    def load_flats(self):
-        for scraper in self.scrapers:
-            self.run_scraper(scraper)
+    @staticmethod
+    def test_multi(scraper):
+        # multi test
+        flats = scraper.start_workflow()
 
-    def run_scraper(self,scraper):
+    def load_flats(self):
+        jobs = []
+        q = Queue()
+        rets = []
+        for scraper in self.scrapers:
+            p = multiprocessing.Process(target=self.run_scraper,args=(q, scraper,))
+            jobs.append(p)
+            p.start()
+        for j in jobs:
+            ret = q.get()
+            rets.append(ret)
+        for j in jobs:
+            j.join()
+        self.all_flats = rets
+        arr = []
+
+        for x in self.all_flats:
+            for y in x:
+                arr.append(y)
+
+        self.all_flats = arr
+
+        print(self.all_flats)
+
+
+            #self.run_scraper(scraper)
+
+    @staticmethod
+    def run_scraper(q,scraper):
+        all_flats = []
         print('triggering scraper',scraper)
         flats = scraper.start_workflow()
-        for flat in flats:
-            self.all_flats.append(flat)
+        #flats = [1,2,3]
+        q.put(flats)
 
     def start_workflow(self):
         self.load_flats()

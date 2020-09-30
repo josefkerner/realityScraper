@@ -168,4 +168,5 @@ class Scraper:
 
         return floor, penb, state
 
-Scraper()
+if __name__ == "__main__":
+    Scraper()
